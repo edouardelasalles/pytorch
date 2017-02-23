@@ -7,6 +7,7 @@ TH_API void THTensor_(geometric)(THTensor *self, THGenerator *_generator, double
 TH_API void THTensor_(bernoulli)(THTensor *self, THGenerator *_generator, double p);
 TH_API void THTensor_(bernoulli_FloatTensor)(THTensor *self, THGenerator *_generator, THFloatTensor *p);
 TH_API void THTensor_(bernoulli_DoubleTensor)(THTensor *self, THGenerator *_generator, THDoubleTensor *p);
+TH_API void THTensor_(poisson)(THTensor *self, THGenerator *_generator, double lambda);
 
 #if defined(TH_REAL_IS_FLOAT) || defined(TH_REAL_IS_DOUBLE)
 TH_API void THTensor_(uniform)(THTensor *self, THGenerator *_generator, double a, double b);

@@ -270,3 +270,59 @@ int THRandom_bernoulli(THGenerator *_generator, double p)
   THArgCheck(p >= 0 && p <= 1, 1, "must be >= 0 and <= 1");
   return(__uniform__(_generator) <= p);
 }
+
+int THRandom_poisson(THGenerator *_generator, double lambda)
+{
+  long k;
+
+  THArgCheck(lambda >= 0 , 1, "must be >= 0");
+
+  if(lambda < 10)
+  {
+    double l, p;
+    l = exp(-lambda);
+    p = 1;
+    k = 0;
+    do
+    {
+      k++;
+      p *= __uniform__(_generator);
+    }while(p > l);
+    k--;
+  }
+  else
+  {
+    double a, b;
+    double u, us, v;
+    double invalpha;
+
+    b = 0.931 + 2.53 * sqrt(lambda);
+    a = -0.059 + 0.02483 * b;
+    invalpha = 1.1239 + 1.1328 / (b - 3.4);
+
+    while (1)
+    {
+      u = __uniform__(_generator) - 0.5;
+      v = __uniform__(_generator);
+      us = 0.5 - fabs(u);
+      
+      k = (long) floor((2* a / us + b) * u + lambda + 0.43);
+      
+      if ((us >= 0.07) && (v <= 0.9277 - 3.6224 / (b - 2)))
+      {
+        break;
+      }
+      
+      if ((k < 0) || ((us < 0.013) && (v > us)))
+      {
+        continue;
+      }
+      
+      if ((log(v) + log(invalpha) - log(a/(us*us)+b)) <= (-lambda + k * log(lambda) - lgamma(k+1)))
+      {
+        break;
+      }
+    }
+  }
+  return k;
+}

@@ -78,4 +78,10 @@ TH_API int THRandom_geometric(THGenerator *_generator, double p);
 
 /* Returns true with probability $p$ and false with probability $1-p$ (p > 0). */
 TH_API int THRandom_bernoulli(THGenerator *_generator, double p);
+
+/** Generates a random number from a poisson distribution.
+    It returns an number $k \in \mathbb{N}$, where $p(k) = \frac{lambda^k}{k!} exp^{-\lambda}$.
+    where $\lambda \in \mathbb{R}^{+}$
+*/
+TH_API int THRandom_poisson(THGenerator *_generator, double lambda);
 #endif
