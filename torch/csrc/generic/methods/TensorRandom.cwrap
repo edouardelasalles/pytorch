@@ -411,8 +411,7 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
     - THTensor* self
     - arg: THGenerator* generator
       default: THPDefaultGenerator->cdata
-    - arg: real lambd
-      default: 1
+    - double lambd
 ]]
 
 #define THDoubleTensor_BERNOULLI_TENSOR THDoubleTensor_bernoulli_DoubleTensor
@@ -471,6 +470,16 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
   arguments:
     - THTensor* self
     - double p
+]]
+
+[[
+  name: poisson_
+  cname: poisson
+  defined_if: CUDA_FLOAT || CUDA_DOUBLE || CUDA_HALF
+  return: self
+  arguments:
+    - THTensor* self
+    - double lambd
 ]]
 
 #define THCudaDoubleTensor_BERNOULLI_TENSOR THCudaDoubleTensor_bernoulli_DoubleTensor

@@ -9,7 +9,7 @@
 
 #define MAX_NUM_BLOCKS 64
 #define BLOCK_SIZE 256
-/* Separate kernel because curand_log_normal gets extra parameters. */
+/* Separate kernel because curand_log_normal and poisson gets extra parameters. */
 
 template <typename T>
 __global__ void generateLogNormal(curandStateMtgp32 *state, int size, T *result, double mean, double stddev)
@@ -33,6 +33,19 @@ __global__ void generateLogNormal<double>(curandStateMtgp32 *state, int size, do
     double x = curand_log_normal_double(&state[blockIdx.x], mean, stddev);
     if (i < size) {
       result[i] = x;
+    }
+  }
+}
+
+template <typename T>
+__global__ void generate_poisson(curandStateMtgp32 *state, int size, T *result, double lambda)
+{
+  int idx = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+  int rounded_size = THCCeilDiv(size, BLOCK_SIZE) * BLOCK_SIZE;
+  for (int i = idx; i < rounded_size; i += BLOCK_SIZE * MAX_NUM_BLOCKS) {
+    unsigned int x = curand_poisson(&state[blockIdx.x], lambda);
+    if (i < size) {
+      result[i] = ScalarConvert<unsigned int, T>::to(x);
     }
   }
 }

@@ -19,5 +19,6 @@ THC_API void THCTensor_(bernoulli)(struct THCState *state, THCTensor *self, doub
 THC_API void THCTensor_(bernoulli_FloatTensor)(struct THCState *state, THCTensor *self, THCudaTensor *p);
 THC_API void THCTensor_(bernoulli_DoubleTensor)(struct THCState *state, THCTensor *self, THCudaDoubleTensor *p);
 THC_API void THCTensor_(geometric)(struct THCState *state, THCTensor *self, double p);
+THC_API void THCTensor_(poisson)(struct THCState *state, THCTensor *self, double lambda);
 
 #endif

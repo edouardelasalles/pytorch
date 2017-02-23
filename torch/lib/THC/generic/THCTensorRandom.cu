@@ -290,6 +290,7 @@ THC_API void THCTensor_(bernoulli)(THCState* state, THCTensor *self_, double p)
 {
   THCAssertSameGPU(THCTensor_(checkGPU)(state, 1, self_));
   Generator* gen = THCRandom_getGenerator(state);
+
   THCTensor *self = THCTensor_(newContiguous)(state, self_);
   ptrdiff_t size = THCTensor_(nElement)(state, self);
   real *data = THCTensor_(data)(state, self);
@@ -298,7 +299,7 @@ THC_API void THCTensor_(bernoulli)(THCState* state, THCTensor *self_, double p)
       gen->gen_states, size, data, p);
 
   THCTensor_(freeCopyTo)(state, self, self_);
-};
+}
 
 #define DEFINE_BERNOULLI_TENSOR(NAME, PROB_TYPE, PROB_DATA_TYPE)               \
 THC_API void THCTensor_(NAME)(THCState* state,                                 \
@@ -326,7 +327,6 @@ DEFINE_BERNOULLI_TENSOR(bernoulli_FloatTensor, THCudaTensor, float)
 DEFINE_BERNOULLI_TENSOR(bernoulli_DoubleTensor, THCudaDoubleTensor, double)
 
 #if defined(THC_REAL_IS_DOUBLE)
-
 GENERATE_KERNEL1(generate_geometric, double, double p, double, curand_uniform_double, ceil(log(x) / log(1-p)))
 #else
 GENERATE_KERNEL1(generate_geometric, real, double p, float, curand_uniform, (ScalarConvert<float, real>::to(ceilf(logf(x) / log(1-p)))))
@@ -345,7 +345,23 @@ THC_API void THCTensor_(geometric)(THCState* state, THCTensor *self_, double p)
       gen->gen_states, size, data, p);
 
   THCTensor_(freeCopyTo)(state, self, self_);
-};
+}
+
+THC_API void THCTensor_(poisson)(THCState* state, THCTensor *self_, double lambda)
+{
+  THCAssertSameGPU(THCTensor_(checkGPU)(state, 1, self_));
+  Generator* gen = THCRandom_getGenerator(state);
+
+  THCTensor *self = THCTensor_(newContiguous)(state, self_);
+  ptrdiff_t size = THCTensor_(nElement)(state, self);
+  real *data = THCTensor_(data)(state, self);
+
+  generate_poisson<<<NUM_BLOCKS, BLOCK_SIZE, 0, THCState_getCurrentStream(state)>>>(
+      gen->gen_states, size, data, lambda);
+
+  THCTensor_(freeCopyTo)(state, self, self_);
+}
+
 #undef NUM_BLOCKS
 
 #endif
