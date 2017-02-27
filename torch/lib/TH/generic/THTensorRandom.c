@@ -48,6 +48,16 @@ void THTensor_(poisson)(THTensor *self, THGenerator *_generator, double lambda)
   TH_TENSOR_APPLY(real, self, *self_data = (real)THRandom_poisson(_generator, lambda););
 }
 
+void THTensor_(poisson_FloatTensor)(THTensor *self, THGenerator *_generator, THFloatTensor *lambda)
+{
+  TH_TENSOR_APPLY2(real, self, float, lambda, *self_data = (real)THRandom_poisson(_generator, (double)*lambda_data););
+}
+
+void THTensor_(poisson_DoubleTensor)(THTensor *self, THGenerator *_generator, THDoubleTensor *lambda)
+{
+  TH_TENSOR_APPLY2(real, self, double, lambda, *self_data = (real)THRandom_poisson(_generator, (double)*lambda_data););
+}
+
 #if defined(TH_REAL_IS_FLOAT) || defined(TH_REAL_IS_DOUBLE)
 
 void THTensor_(uniform)(THTensor *self, THGenerator *_generator, double a, double b)

@@ -405,13 +405,26 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
 [[
   name: poisson_
   defined_if: "!IS_CUDA"
-  cname: poisson
   return: self
-  arguments:
-    - THTensor* self
-    - arg: THGenerator* generator
-      default: THPDefaultGenerator->cdata
-    - double lambd
+  options:
+    - cname: poisson
+      arguments:
+        - THTensor* self
+        - arg: THGenerator* generator
+          default: THPDefaultGenerator->cdata
+        - arg: double lambd
+    - cname: poisson_FloatTensor
+      arguments:
+        - THTensor* self
+        - arg: THGenerator* generator
+          default: THPDefaultGenerator->cdata
+        - THFloatTensor* float_lambd
+    - cname: poisson_DoubleTensor
+      arguments:
+        - THTensor* self
+        - arg: THGenerator* generator
+          default: THPDefaultGenerator->cdata
+        - THDoubleTensor* float_lambd
 ]]
 
 #define THDoubleTensor_BERNOULLI_TENSOR THDoubleTensor_bernoulli_DoubleTensor
@@ -474,13 +487,23 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
 
 [[
   name: poisson_
-  cname: poisson
   defined_if: CUDA_FLOAT || CUDA_DOUBLE || CUDA_HALF
   return: self
-  arguments:
-    - THTensor* self
-    - double lambd
+  options:
+    - cname: poisson
+      arguments:
+        - THTensor* self
+        - arg: double lambd
+    - cname: poisson_FloatTensor
+      arguments:
+        - THTensor* self
+        - THCudaTensor* float_lambd
+    - cname: poisson_DoubleTensor
+      arguments:
+        - THTensor* self
+        - THCudaDoubleTensor* float_lambd
 ]]
+
 
 #define THCudaDoubleTensor_BERNOULLI_TENSOR THCudaDoubleTensor_bernoulli_DoubleTensor
 #define THCudaTensor_BERNOULLI_TENSOR THCudaTensor_bernoulli_FloatTensor
