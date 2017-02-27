@@ -305,7 +305,7 @@ THC_API void THCTensor_(bernoulli)(THCState* state, THCTensor *self_, double p)
 THC_API void THCTensor_(NAME)(THCState* state,                                 \
         THCTensor *self_, PROB_TYPE *probs_)                                   \
 {                                                                              \
-  THCAssertSameGPU(THCTensor_(checkGPU)(state, 2, self_, probs_));                     \
+  THCAssertSameGPU(THCTensor_(checkGPU)(state, 2, self_, probs_));             \
   Generator* gen = THCRandom_getGenerator(state);                              \
   THCTensor *self = THCTensor_(newContiguous)(state, self_);                   \
   PROB_TYPE *probs = PROB_TYPE##_newContiguous(state, probs_);                 \
@@ -361,6 +361,31 @@ THC_API void THCTensor_(poisson)(THCState* state, THCTensor *self_, double lambd
 
   THCTensor_(freeCopyTo)(state, self, self_);
 }
+
+#define DEFINE_POISSON_TENSOR(NAME, LAMBD_TYPE, LAMBD_DATA_TYPE)               \
+THC_API void THCTensor_(NAME)(THCState* state,                                 \
+        THCTensor *self_, LAMBD_TYPE *lambds_)                                 \
+{                                                                              \
+  THCAssertSameGPU(THCTensor_(checkGPU)(state, 2, self_, lambds_));            \
+  Generator* gen = THCRandom_getGenerator(state);                              \
+  THCTensor *self = THCTensor_(newContiguous)(state, self_);                   \
+  LAMBD_TYPE *lambds = LAMBD_TYPE##_newContiguous(state, lambds_);             \
+  ptrdiff_t size = THCTensor_(nElement)(state, self);                          \
+  ptrdiff_t lambd_size = LAMBD_TYPE##_nElement(state, lambds);                 \
+  real *result_data = THCTensor_(data)(state, self);                           \
+  LAMBD_DATA_TYPE *lambds_data = LAMBD_TYPE##_data(state, lambds);             \
+                                                                               \
+  THArgCheck(size == lambd_size, 3, "inconsistent tensor size");               \
+                                                                               \
+  generate_poisson_tensor<<<NUM_BLOCKS, BLOCK_SIZE, 0, THCState_getCurrentStream(state)>>>( \
+      gen->gen_states, size, result_data, lambds_data);                        \
+                                                                               \
+  LAMBD_TYPE##_free(state, lambds);                                            \
+  THCTensor_(freeCopyTo)(state, self, self_);                                  \
+}
+
+DEFINE_POISSON_TENSOR(poisson_FloatTensor, THCudaTensor, float)
+DEFINE_POISSON_TENSOR(poisson_DoubleTensor, THCudaDoubleTensor, double)
 
 #undef NUM_BLOCKS
 
