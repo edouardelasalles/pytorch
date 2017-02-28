@@ -50,6 +50,7 @@ Random sampling
 .. autofunction:: bernoulli
 .. autofunction:: multinomial
 .. autofunction:: normal
+.. autofunction:: poisson
 
 
 Serialization

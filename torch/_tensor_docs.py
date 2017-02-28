@@ -1027,6 +1027,20 @@ ormqr(input2, input3, left=True, transpose=False) -> Tensor
 See :func:`torch.ormqr`
 """)
 
+add_docstr(torch._C.FloatTensorBase.poisson,
+           """
+poisson() -> Tensor
+
+See :func:`torch.poisson`
+""")
+
+add_docstr(torch._C.FloatTensorBase.poisson_,
+           """
+poisson_() -> Tensor
+
+In-place version of :meth:`~Tensor.poisson`
+""")
+
 add_docstr(torch._C.FloatTensorBase.potrf,
            """
 potrf(upper=True) -> Tensor

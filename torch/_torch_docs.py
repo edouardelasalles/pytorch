@@ -2919,6 +2919,57 @@ Example::
 # """
 # """)
 
+add_docstr(torch._C.poisson,
+           """
+poisson(input, out=None) -> Tensor
+
+Draws natural random numbers :math:`k \in \mathbb{N}` from a Poisson distribution.
+
+The :attr:`input` Tensor should be a tensor containing :math:`\lambda \in \mathbb{R}^{+}`
+to be used for drawing the natural random number.
+Hence, all values in :attr:`input` have to be in :math:`\mathbb{R}^{+}`
+
+The Poisson law pdf of drawing a number `k` given a parameter :math:`\lambda` is:
+:math:`p(k; \lambda) = \frac{\lambda^k}{k!} e^{-\lambda}`
+
+The `i-th` element of the output tensor will draw a natural number
+from the Poisson law with parameter given by the `i-th` lambda value
+given in :attr:`input`.
+
+The returned :attr:`out` Tensor only has values :math:`\in \mathbb{N}`
+and is of the same shape as :attr:`input`
+
+Args:
+    input (Tensor): Lambda values for the Poisson distribution
+    out (Tensor, optional): Output tensor
+
+Example::
+
+    >>> a = torch.rand(3,3).mul_(100) # generate a uniform random matrix with range [0, 100]
+    >>> a
+
+     24.6531  11.9592  94.0562
+     16.5249  67.7452  30.2034
+     84.5612  85.1825  41.0973
+    [torch.FloatTensor of size 3x3]
+
+    >>> torch.poisson(a)
+
+     22   11   99
+     19  106   33
+     76   87   43
+    [torch.FloatTensor of size 3x3]
+
+    >>> a = torch.Tensor(3, 3).fill_(50) # lambda = 50
+    >>> torch.poisson(a)
+
+     40  51  44
+     48  50  43
+     45  46  42
+    [torch.FloatTensor of size 3x3]
+
+""")
+
 add_docstr(torch._C.pow,
            """
 .. function:: pow(input, exponent, out=None)
