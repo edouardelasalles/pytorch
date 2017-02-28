@@ -427,6 +427,28 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
         - THDoubleTensor* float_lambd
 ]]
 
+#define THDoubleTensor_POISSON_TENSOR THDoubleTensor_poisson_DoubleTensor
+#define THFloatTensor_POISSON_TENSOR THFloatTensor_poisson_FloatTensor
+
+[[
+  name: poisson
+  defined_if: defined(TH_REAL_IS_FLOAT) || defined(TH_REAL_IS_DOUBLE)
+  return: argument 0
+  with_stateless: True
+  before_call:
+    THTensor_(resizeAs)(LIBRARY_STATE ((THPTensor*)$arg0)->cdata, ((THPTensor*)$arg2)->cdata);
+  cname: POISSON_TENSOR
+  arguments:
+    - arg: THTensor* output
+      output: True
+    - arg: THGenerator* generator
+      default: THPDefaultGenerator->cdata
+    - THTensor* self
+]]
+
+#undef THDoubleTensor_POISSON_TENSOR
+#undef THFloatTensor_POISSON_TENSOR
+
 #define THDoubleTensor_BERNOULLI_TENSOR THDoubleTensor_bernoulli_DoubleTensor
 #define THFloatTensor_BERNOULLI_TENSOR THFloatTensor_bernoulli_FloatTensor
 
@@ -503,6 +525,26 @@ static void THTensor_(normal_means_stddevs)(THCState *_, THTensor *self, THTenso
         - THTensor* self
         - THCudaDoubleTensor* float_lambd
 ]]
+
+#define THCudaDoubleTensor_POISSON_TENSOR THCudaDoubleTensor_poisson_DoubleTensor
+#define THCudaTensor_POISSON_TENSOR THCudaTensor_poisson_FloatTensor
+
+[[
+  name: poisson
+  defined_if: CUDA_FLOAT || CUDA_DOUBLE
+  return: argument 0
+  with_stateless: True
+  cname: POISSON_TENSOR
+  before_call:
+    THTensor_(resizeAs)(LIBRARY_STATE ((THPTensor*)$arg0)->cdata, ((THPTensor*)$arg1)->cdata);
+  arguments:
+    - arg: THTensor* output
+      output: True
+    - THTensor* self
+]]
+
+#undef THCudaDoubleTensor_POISSON_TENSOR
+#undef THCudaTensor_POISSON_TENSOR
 
 
 #define THCudaDoubleTensor_BERNOULLI_TENSOR THCudaDoubleTensor_bernoulli_DoubleTensor

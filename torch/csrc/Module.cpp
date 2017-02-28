@@ -273,6 +273,7 @@ IMPLEMENT_STATELESS(cauchy)
 IMPLEMENT_STATELESS(log_normal)
 IMPLEMENT_STATELESS(random)
 IMPLEMENT_STATELESS(bernoulli)
+IMPLEMENT_STATELESS(poisson)
 IMPLEMENT_STATELESS(range)
 IMPLEMENT_STATELESS(gather)
 IMPLEMENT_STATELESS(rand)
@@ -624,6 +625,7 @@ static PyMethodDef TorchMethods[] = {
   {"log_normal",      (PyCFunction)THPModule_log_normal,        METH_VARARGS | METH_KEYWORDS, NULL},
   {"random",          (PyCFunction)THPModule_random,            METH_VARARGS | METH_KEYWORDS, NULL},
   {"bernoulli",       (PyCFunction)THPModule_bernoulli,         METH_VARARGS | METH_KEYWORDS, NULL},
+  {"poisson",         (PyCFunction)THPModule_poisson,           METH_VARARGS | METH_KEYWORDS, NULL},
   {"rand",            (PyCFunction)THPModule_rand,              METH_VARARGS | METH_KEYWORDS, NULL},
   {"randn",           (PyCFunction)THPModule_randn,             METH_VARARGS | METH_KEYWORDS, NULL},
   {"randperm",        (PyCFunction)THPModule_randperm,          METH_VARARGS | METH_KEYWORDS, NULL},
