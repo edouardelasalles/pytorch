@@ -18,9 +18,8 @@ class Index(Function):
         return result
 
     def backward(self, grad_output):
-        # TODO: this won't have to be zeroed
         grad_input = grad_output.new(self.input_size).zero_()
-        grad_input.index(self.index).copy_(grad_output)
+        grad_input._set_index(self.index, grad_output)
         return grad_input
 
 
@@ -35,18 +34,18 @@ class SetItem(InplaceFunction):
         self.mark_dirty(i)
         if value is None:
             value = self.value
-        i.set_index(self.index, value)
+        i._set_index(self.index, value)
         return i
 
     def backward(self, grad_output):
         if self.value is None:
             grad_input = grad_output.clone()
-            grad_input.set_index(self.index, 0)
+            grad_input._set_index(self.index, 0)
             grad_value = grad_output.index(self.index).clone()
             return grad_input, grad_value
         else:
             grad_input = grad_output.clone()
-            grad_input.set_index(self.index, 0)
+            grad_input._set_index(self.index, 0)
             return grad_input
 
 
@@ -99,20 +98,22 @@ class View(Function):
 
     def backward(self, grad_output):
         # TODO: not sure if this clone is necessary
-        return grad_output.clone().view(self.input_size)
+        return grad_output.contiguous().view(self.input_size)
 
 
 class Expand(Function):
+
     def __init__(self, sizes):
         super(Expand, self).__init__()
         self.sizes = sizes
         self.expanded_dims = []
 
     def forward(self, i):
-        self.expanded_dims = [dim for dim, (expanded, original)
-                in enumerate(zip(self.sizes, i.size()))
-                if expanded != original]
         result = i.expand(*self.sizes)
+        unsqueezed = (1,) * (len(self.sizes) - len(i.size()))
+        self.expanded_dims = [dim for dim, (expanded, original)
+                              in enumerate(zip(self.sizes, unsqueezed + i.size()))
+                              if expanded != original]
         self.mark_shared_storage((i, result))
         return result
 
@@ -288,7 +289,7 @@ class IndexSelect(Function):
         if self.needs_input_grad[0]:
             index, = self.saved_tensors
             grad_tensor = grad_output.new(*self.input_size).zero_()
-            grad_tensor.index_copy_(self.dim, index, grad_output)
+            grad_tensor.index_add_(self.dim, index, grad_output)
 
         return grad_tensor, None
 
@@ -304,8 +305,8 @@ class Concat(Function):
         return torch.cat(inputs, self.dim)
 
     def backward(self, grad_output):
-        return tuple(grad_output.narrow(self.dim, end-size, size) for size, end
-                in zip(self.input_sizes, _accumulate(self.input_sizes)))
+        return tuple(grad_output.narrow(self.dim, end - size, size) for size, end
+                     in zip(self.input_sizes, _accumulate(self.input_sizes)))
 
 
 class Resize(Function):
@@ -318,11 +319,11 @@ class Resize(Function):
     def forward(self, tensor):
         if tensor.numel() != self.numel:
             raise RuntimeError(("requested resize to {} ({} elements in total), "
-                    "but the given tensor has a size of {} ({} elements). "
-                    "autograd's resize can only change the shape of a given "
-                    "tensor, while preserving the number of elements. ").format(
-                        'x'.join(map(str, self.sizes)), self.numel,
-                        'x'.join(map(str, tensor.size())), tensor.numel()))
+                                "but the given tensor has a size of {} ({} elements). "
+                                "autograd's resize can only change the shape of a given "
+                                "tensor, while preserving the number of elements. ").format(
+                'x'.join(map(str, self.sizes)), self.numel,
+                'x'.join(map(str, tensor.size())), tensor.numel()))
         self.input_sizes = tensor.size()
         result = tensor.new(tensor).resize_(*self.sizes)
         self.mark_shared_storage((tensor, result))
@@ -474,7 +475,7 @@ class _MultiSelectionFunction(Function):
 
 class Sort(_MultiSelectionFunction):
 
-    def __init__(self, dim=None, descending=False, return_indices=False):
+    def __init__(self, dim=None, descending=False, return_indices=True):
         super(Sort, self).__init__(dim, return_indices)
         self.descending = descending
 
@@ -486,14 +487,14 @@ class Sort(_MultiSelectionFunction):
 
 class Topk(_MultiSelectionFunction):
 
-    def __init__(self, k, dim=None, largest=True, sort=True, return_indices=False):
+    def __init__(self, k, dim=None, largest=True, sort=True, return_indices=True):
         super(Topk, self).__init__(dim, return_indices)
         self.k = k
         self.largest = largest
         self.sort = sort
 
     def forward(self, input):
-        dim = self.dim if self.dim is not None else input.dim()-1
+        dim = self.dim if self.dim is not None else input.dim() - 1
         self.args = (self.k, dim, self.largest, self.sort)
         return super(Topk, self).forward(input)
 
@@ -567,9 +568,22 @@ class Scatter(InplaceFunction):
         return grad_input, None, grad_source
 
 
-# TODO: kthvalue
-# TODO: repeat
-# TODO: sort
-# TODO: split
-# TODO: topk
+class Repeat(Function):
+
+    def __init__(self, repeats):
+        super(Repeat, self).__init__()
+        self.repeats = repeats
+
+    def forward(self, input):
+        return input.repeat(self.repeats)
+
+    def backward(self, grad_output):
+        grad_input = grad_output
+        for dim, repeat in enumerate(self.repeats):
+            if repeat == 1:
+                continue
+            grad_input = sum(grad_input.chunk(repeat, dim))
+        return grad_input
+
+
 # TODO: unfold

@@ -10,6 +10,7 @@ on an NVIDIA GPU with compute capability >= 2.0.
 
 import sys
 from ._utils import _import_dotted_name
+from .version import __version__
 
 __all__ = [
     'typename', 'is_tensor', 'is_storage', 'set_default_tensor_type',
@@ -56,6 +57,7 @@ del old_flags
 # Define basic utilities
 ################################################################################
 
+
 def typename(o):
     module = ''
     class_name = ''
@@ -74,10 +76,20 @@ def typename(o):
 
 
 def is_tensor(obj):
+    r"""Returns True if `obj` is a pytorch tensor.
+
+    Args:
+        obj (Object): Object to test
+    """
     return obj.__class__ in _tensor_classes
 
 
 def is_storage(obj):
+    r"""Returns True if `obj` is a pytorch storage object.
+
+    Args:
+        obj (Object): Object to test
+    """
     return obj.__class__ in _storage_classes
 
 
@@ -91,7 +103,7 @@ def set_default_tensor_type(t):
 
 def set_rng_state(new_state):
     r"""Sets the random number generator state.
-    
+
     Args:
         new_state (torch.ByteTensor): The desired state
     """
@@ -104,9 +116,9 @@ def get_rng_state():
 
 
 def manual_seed(seed):
-    r"""Sets the seed for generating random numbers. And returns a 
+    r"""Sets the seed for generating random numbers. And returns a
     `torch._C.Generator` object.
-    
+
     Args:
         seed (int or long): The desired seed.
     """
@@ -114,7 +126,7 @@ def manual_seed(seed):
 
 
 def initial_seed():
-    r"""Returns the initial seed for generating random numbers as a 
+    r"""Returns the initial seed for generating random numbers as a
     python `long`.
     """
     return default_generator.initial_seed()
@@ -130,61 +142,115 @@ from ._tensor_str import set_printoptions
 from .storage import _StorageBase
 from .tensor import _TensorBase
 
+
 class DoubleStorage(_C.DoubleStorageBase, _StorageBase):
     pass
+
+
 class FloatStorage(_C.FloatStorageBase, _StorageBase):
     pass
+
+
+class HalfStorage(_C.HalfStorageBase, _StorageBase):
+    pass
+
+
 class LongStorage(_C.LongStorageBase, _StorageBase):
     pass
+
+
 class IntStorage(_C.IntStorageBase, _StorageBase):
     pass
+
+
 class ShortStorage(_C.ShortStorageBase, _StorageBase):
     pass
+
+
 class CharStorage(_C.CharStorageBase, _StorageBase):
     pass
+
+
 class ByteStorage(_C.ByteStorageBase, _StorageBase):
     pass
 
+
 class DoubleTensor(_C.DoubleTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return DoubleStorage
+
+
 class FloatTensor(_C.FloatTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return FloatStorage
-class LongTensor(_C.LongTensorBase, _TensorBase):
+
+
+class HalfTensor(_C.HalfTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
+    @classmethod
+    def storage_type(cls):
+        return HalfStorage
+
+
+class LongTensor(_C.LongTensorBase, _TensorBase):
+
+    def is_signed(self):
+        return True
+
     @classmethod
     def storage_type(cls):
         return LongStorage
+
+
 class IntTensor(_C.IntTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return IntStorage
+
+
 class ShortTensor(_C.ShortTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return ShortStorage
+
+
 class CharTensor(_C.CharTensorBase, _TensorBase):
+
     def is_signed(self):
         # TODO
         return False
+
     @classmethod
     def storage_type(cls):
         return CharStorage
+
+
 class ByteTensor(_C.ByteTensorBase, _TensorBase):
+
     def is_signed(self):
         return False
+
     @classmethod
     def storage_type(cls):
         return ByteStorage

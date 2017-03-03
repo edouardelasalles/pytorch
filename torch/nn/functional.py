@@ -4,6 +4,7 @@ import torch
 from . import _functions
 from .modules import utils
 from torch.nn._functions.conv import ConvNd
+from ._functions.padding import ConstantPad2d
 from .modules.utils import _single, _pair, _triple
 # Convolutions
 
@@ -79,7 +80,7 @@ def conv3d(input, weight, bias=None, stride=1, padding=0, dilation=1,
     Examples:
         >>> filters = autograd.Variable(torch.randn(33, 16, 3, 3, 3))
         >>> inputs = autograd.Variable(torch.randn(20, 16, 50, 10, 20))
-        >>> F.conv3d(inputs)
+        >>> F.conv3d(inputs, filters)
     """
     f = ConvNd(_triple(stride), _triple(padding), _triple(dilation), False,
                _triple(0), groups)
@@ -167,7 +168,7 @@ def avg_pool1d(input, kernel_size, stride=None, padding=0,
         raise ValueError('expected 3D input (got {} dimensions)'
                          .format(input.dim()))
     kernel_size = _single(kernel_size) + (1,)
-    stride = _single(stride) + (1,)
+    stride = _single(stride) + (1,) if stride is not None else kernel_size
     padding = _single(padding) + (0,)
     f = _functions.thnn.AvgPool2d(kernel_size, stride, padding,
                                   ceil_mode, count_include_pad)
@@ -229,8 +230,8 @@ def _unpool_output_size(input, kernel_size, stride, padding, output_size):
     input_size = input.size()
     default_size = []
     for d in range(len(kernel_size)):
-        default_size.append((input_size[d + 2] - 1) * stride[d]
-                            + kernel_size[d] - 2 * padding[d])
+        default_size.append((input_size[d + 2] - 1) * stride[d] +
+                            kernel_size[d] - 2 * padding[d])
     if output_size is None:
         return default_size
 
@@ -289,7 +290,7 @@ def max_unpool3d(input, indices, kernel_size, stride=None, padding=0,
 def lp_pool2d(input, norm_type, kernel_size, stride=None, ceil_mode=False):
     kw, kh = utils._pair(kernel_size)
     out = avg_pool2d(input.pow(norm_type), kernel_size, stride, 0, ceil_mode)
-    return out.mul(kw * kh).pow(1./norm_type)
+    return out.mul(kw * kh).pow(1. / norm_type)
 
 
 # Activation functions
@@ -326,7 +327,7 @@ def prelu(input, weight):
     return _functions.thnn.PReLU()(input, weight)
 
 
-def rrelu(input, lower=1./8, upper=1./3, training=False, inplace=False):
+def rrelu(input, lower=1. / 8, upper=1. / 3, training=False, inplace=False):
     return _functions.thnn.RReLU(lower, upper, training, inplace)(input)
 
 
@@ -398,8 +399,8 @@ def nll_loss(input, target, weight=None, size_average=True):
     Args:
         input: :math:`(N, C)` where `C = number of classes`
         target: :math:`(N)` where each value is `0 <= targets[i] <= C-1`
-        weight (Tensor, optional): a manual rescaling weight given to each
-                class. If given, has to be a Tensor of size "nclasses"
+        weight (Variable, optional): a manual rescaling weight given to each
+                class. If given, has to be a Variable of size "nclasses"
         size_average (bool, optional): By default, the losses are averaged
                 over observations for each minibatch. However, if the field
                 sizeAverage is set to False, the losses are instead summed
@@ -425,8 +426,8 @@ def kl_div(input, target, size_average=True):
     See :class:`~torch.nn.KLDivLoss` for details.
 
     Args:
-        input: Tensor of arbitrary shape
-        target: Tensor of the same shape as input
+        input: Variable of arbitrary shape
+        target: Variable of the same shape as input
         size_average: if True the output is divided by the number of elements
           in input tensor
     """
@@ -439,8 +440,8 @@ def cross_entropy(input, target, weight=None, size_average=True):
     See :class:`torch.nn.CrossEntropyLoss` for details.
 
     Args:
-        input: Tensor :math:`(N, C)` where `C = number of classes`
-        target: Tensor :math:`(N)` where each value is `0 <= targets[i] <= C-1`
+        input: Variable :math:`(N, C)` where `C = number of classes`
+        target: Variable :math:`(N)` where each value is `0 <= targets[i] <= C-1`
         weight (Tensor, optional): a manual rescaling weight given to each
                 class. If given, has to be a Tensor of size "nclasses"
         size_average (bool, optional): By default, the losses are averaged
@@ -458,9 +459,9 @@ def binary_cross_entropy(input, target, weight=None, size_average=True):
     See :class:`~torch.nn.BCELoss` for details.
 
     Args:
-        input: Tensor of arbitrary shape
-        target: Tensor of the same shape as input
-        weight (Tensor, optional): a manual rescaling weight
+        input: Variable of arbitrary shape
+        target: Variable of the same shape as input
+        weight (Variable, optional): a manual rescaling weight
                 if provided it's repeated to match input tensor shape
         size_average (bool, optional): By default, the losses are averaged
                 over observations for each minibatch. However, if the field
@@ -481,7 +482,7 @@ def pixel_shuffle(input, upscale_factor):
     See :class:`~torch.nn.PixelShuffle` for details.
 
     Args:
-        input (Tensor): Input
+        input (Variable): Input
         upscale_factor (int): factor to increase spatial resolution by
 
     Examples:
@@ -503,3 +504,64 @@ def pixel_shuffle(input, upscale_factor):
 
     shuffle_out = input_view.permute(0, 1, 4, 2, 5, 3).contiguous()
     return shuffle_out.view(batch_size, channels, out_height, out_width)
+
+
+def upsample_nearest(input, size=None, scale_factor=None):
+    """Upsamples the input, using nearest neighbours' pixel values.
+
+    Currently only spatial upsampling is supported (i.e. expected inputs
+    are 4 dimensional).
+
+    Args:
+        input (Variable): input
+        size (int or Tuple[int, int]): output spatial size.
+        scale_factor (int): multiplier for spatial size. Has to be an integer.
+    """
+    return _functions.thnn.UpsamplingNearest2d(size, scale_factor)(input)
+
+
+def upsample_bilinear(input, size=None, scale_factor=None):
+    """Upscales the input, using the bilinear upsampling.
+
+    Currently only spatial upsampling is supported (i.e. expected inputs
+    are 4 dimensional).
+
+    Args:
+        input (Variable): input
+        size (int or Tuple[int, int]): output spatial size.
+        scale_factor (int): multiplier for spatial size. Has to be an integer.
+    """
+    return _functions.thnn.UpsamplingBilinear2d(size, scale_factor)(input)
+
+
+def pad(input, pad, mode='constant', value=0):
+    """Pads tensor.
+
+    Currently only 2D and 3D padding supported.
+    In case of 4D input tensor pad should be in form (pad_l, pad_r, pad_t, pad_b )
+    In case of 5D pad should be (pleft, pright, ptop, pbottom, pfront, pback)
+
+    Args
+        input (Variable): 4D or 5D tensor
+        pad (tuple): 4-elem or 6-elem tuple
+        mode: 'constant', 'reflect' or 'replicate'
+        value: fill value for 'constant' padding
+    """
+    if input.dim() == 4:
+        assert len(pad) == 4, '4D tensors expect 4 values for padding'
+        if mode == 'constant':
+            return ConstantPad2d(pad, value)(input)
+        elif mode == 'reflect':
+            return _functions.thnn.ReflectionPad2d(*pad)(input)
+        elif mode == 'replicate':
+            return _functions.thnn.ReplicationPad2d(*pad)(input)
+    elif input.dim() == 5:
+        assert len(pad) == 6, '5D tensors expect 6 values for padding'
+        if mode == 'constant':
+            raise NotImplementedError
+        elif mode == 'reflect':
+            raise NotImplementedError
+        elif mode == 'replicate':
+            return _functions.thnn.ReplicationPad3d(*pad)(input)
+    else:
+        raise NotImplementedError("Only 4D and 5D padding is supported for now")

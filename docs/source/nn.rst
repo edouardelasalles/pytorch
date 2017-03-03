@@ -22,6 +22,24 @@ Containers
 .. autoclass:: Module
     :members:
 
+:hidden:`Sequential`
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: Sequential
+    :members:
+
+:hidden:`ModuleList`
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: ModuleList
+    :members:
+
+:hidden:`ParameterList`
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: ParameterList
+    :members:
+
 Convolution Layers
 ----------------------------------
 
@@ -368,6 +386,12 @@ Loss functions
 .. autoclass:: NLLLoss
     :members:
 
+:hidden:`NLLLoss2d`
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: NLLLoss2d
+    :members:
+
 :hidden:`KLDivLoss`
 ~~~~~~~~~~~~~~~~~~~
 
@@ -438,6 +462,19 @@ Vision layers
 .. autoclass:: PixelShuffle
     :members:
 
+:hidden:`UpsamplingNearest2d`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: UpsamplingNearest2d
+    :members:
+
+:hidden:`UpsamplingBilinear2d`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: UpsamplingBilinear2d
+    :members:
+
+
 Multi-GPU layers
 ----------------
 
@@ -446,6 +483,36 @@ Multi-GPU layers
 
 .. autoclass:: DataParallel
     :members:
+
+
+Utilities
+---------
+
+:hidden:`clip_grad_norm`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: torch.nn.utils.clip_grad_norm
+
+
+.. currentmodule:: torch.nn.utils.rnn
+
+:hidden:`PackedSequence`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: torch.nn.utils.rnn.PackedSequence
+
+
+:hidden:`pack_padded_sequence`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: torch.nn.utils.rnn.pack_padded_sequence
+
+
+:hidden:`pad_packed_sequence`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: torch.nn.utils.rnn.pad_packed_sequence
+
 
 torch.nn.functional
 ===================

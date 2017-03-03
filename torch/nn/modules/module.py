@@ -56,14 +56,6 @@ class Module(object):
         self._forward_hooks = OrderedDict()
         self._modules = OrderedDict()
         self.training = True
-        for name, param in self._parameters.items():
-            if not isinstance(param, Parameter):
-                if isinstance(param, Variable):
-                    raise TypeError("can't use a Variable as a module "
-                        "parameter.  Convert it to torch.nn.Parameter first.")
-                if param is not None:
-                    param = Parameter(param)
-            self._parameters[name] = param
 
     def forward(self, *input):
         """Defines the computation performed at every call.
@@ -126,7 +118,7 @@ class Module(object):
                 # Variables stored in modules are graph leaves, and we don't
                 # want to create copy nodes, so we have to unpack the data.
                 param.data = fn(param.data)
-                if param.grad is not None:
+                if param._grad is not None:
                     param._grad.data = fn(param._grad.data)
 
         for key, buf in self._buffers.items():
@@ -365,14 +357,14 @@ class Module(object):
                 for m in module.modules(memo):
                     yield m
 
-    def train(self):
+    def train(self, mode=True):
         """Sets the module in training mode.
 
         This has any effect only on modules such as Dropout or BatchNorm.
         """
-        self.training = True
+        self.training = mode
         for module in self.children():
-            module.train()
+            module.train(mode)
         return self
 
     def eval(self):
@@ -380,15 +372,13 @@ class Module(object):
 
         This has any effect only on modules such as Dropout or BatchNorm.
         """
-        self.training = False
-        for module in self.children():
-            module.eval()
-        return self
+        return self.train(False)
 
     def zero_grad(self):
         """Sets gradients of all model parameters to zero."""
         for p in self.parameters():
-            p.grad.data.zero_()
+            if p.requires_grad:
+                p.grad.data.zero_()
 
     def share_memory(self):
         return self._apply(lambda t: t.share_memory_())
@@ -398,6 +388,6 @@ class Module(object):
         for key, module in self._modules.items():
             modstr = module.__repr__()
             modstr = _addindent(modstr, 2)
-            tmpstr = tmpstr + '  ('  + key + '): ' + modstr + '\n'
+            tmpstr = tmpstr + '  (' + key + '): ' + modstr + '\n'
         tmpstr = tmpstr + ')'
         return tmpstr

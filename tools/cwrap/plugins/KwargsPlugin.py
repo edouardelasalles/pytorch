@@ -1,6 +1,7 @@
 from . import CWrapPlugin
 from string import Template
 
+
 class KwargsPlugin(CWrapPlugin):
 
     ACCESSOR_TEMPLATE = Template('(__tuplecount > $idx ? PyTuple_GET_ITEM(args, $idx) : __kw_$name)')
@@ -52,8 +53,9 @@ class KwargsPlugin(CWrapPlugin):
                         name not in seen_args):
                     seen_args.add(name)
                     args.append(name)
-        declarations = '\n    '.join(['PyObject *__kw_{} = NULL;'.format(name) for name in args])
-        lookups = '\n      '.join(['__kw_{name} = PyDict_GetItemString(kwargs, "{name}");'.format(name=name) for name in args])
+        declarations = '\n    '.join(['PyObject *__kw_{} = NULL;'.format(a) for a in args])
+        lookups = '\n      '.join(
+            ['__kw_{name} = PyDict_GetItemString(kwargs, "{name}");'.format(name=a) for a in args])
         start_idx = code.find('{') + 1
         new_code = self.WRAPPER_TEMPLATE.substitute(declarations=declarations, lookups=lookups)
         return code[:start_idx] + new_code + code[start_idx:]

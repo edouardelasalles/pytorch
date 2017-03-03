@@ -4,6 +4,8 @@ function as CPU tensors, but they utilize GPUs for computation.
 
 It is lazily initialized, so you can always import it, and use
 :func:`is_available()` to determine if your system supports CUDA.
+
+:ref:`cuda-semantics` has more details about working with CUDA.
 """
 
 import contextlib
@@ -51,9 +53,9 @@ def _load_cudart():
         except OSError:
             pass
     raise RuntimeError("couldn't find libcudart. Make sure CUDA libraries "
-        "are installed in a default location, or that they're in " +
-        ("DYLD_LIBRARY_PATH" if system == 'Darwin' else "LD_LIBRARY_PATH") +
-        ".")
+                       "are installed in a default location, or that they're in " +
+                       ("DYLD_LIBRARY_PATH" if system == 'Darwin' else "LD_LIBRARY_PATH") +
+                       ".")
 
 
 def _check_driver():
@@ -194,8 +196,11 @@ def stream(stream):
 
 def device_count():
     """Returns the number of GPUs available."""
-    _lazy_init()
-    return torch._C._cuda_getDeviceCount()
+    if is_available():
+        _lazy_init()
+        return torch._C._cuda_getDeviceCount()
+    else:
+        return 0
 
 
 def current_device():
@@ -219,6 +224,15 @@ def current_stream():
 def _host_allocator():
     _lazy_init()
     return torch._C._cuda_cudaHostAllocator()
+
+
+@contextlib.contextmanager
+def _free_mutex():
+    torch._C._cuda_lock_mutex()
+    try:
+        yield
+    finally:
+        torch._C._cuda_unlock_mutex()
 
 
 from .random import *
@@ -259,67 +273,112 @@ class _CudaBase(object):
 
 class DoubleStorage(_CudaBase, torch._C.CudaDoubleStorageBase, _StorageBase):
     pass
+
+
 class FloatStorage(_CudaBase, torch._C.CudaFloatStorageBase, _StorageBase):
     pass
+
+
 class LongStorage(_CudaBase, torch._C.CudaLongStorageBase, _StorageBase):
     pass
+
+
 class IntStorage(_CudaBase, torch._C.CudaIntStorageBase, _StorageBase):
     pass
+
+
 class ShortStorage(_CudaBase, torch._C.CudaShortStorageBase, _StorageBase):
     pass
+
+
 class CharStorage(_CudaBase, torch._C.CudaCharStorageBase, _StorageBase):
     pass
+
+
 class ByteStorage(_CudaBase, torch._C.CudaByteStorageBase, _StorageBase):
     pass
+
+
 class HalfStorage(_CudaBase, torch._C.CudaHalfStorageBase, _StorageBase):
     pass
 
+
 class DoubleTensor(_CudaBase, torch._C.CudaDoubleTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return DoubleStorage
+
+
 class FloatTensor(_CudaBase, torch._C.CudaFloatTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return FloatStorage
+
+
 class LongTensor(_CudaBase, torch._C.CudaLongTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return LongStorage
+
+
 class IntTensor(_CudaBase, torch._C.CudaIntTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return IntStorage
+
+
 class ShortTensor(_CudaBase, torch._C.CudaShortTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type(cls):
         return ShortStorage
+
+
 class CharTensor(_CudaBase, torch._C.CudaCharTensorBase, _TensorBase):
+
     def is_signed(self):
         # TODO
         return False
+
     @classmethod
     def storage_type(cls):
         return CharStorage
+
+
 class ByteTensor(_CudaBase, torch._C.CudaByteTensorBase, _TensorBase):
+
     def is_signed(self):
         return False
+
     @classmethod
     def storage_type(cls):
         return ByteStorage
+
+
 class HalfTensor(_CudaBase, torch._C.CudaHalfTensorBase, _TensorBase):
+
     def is_signed(self):
         return True
+
     @classmethod
     def storage_type():
         return HalfStorage

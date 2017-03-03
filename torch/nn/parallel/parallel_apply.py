@@ -12,7 +12,7 @@ def parallel_apply(modules, inputs):
     assert len(modules) == len(inputs)
     # Fast track
     if len(modules) == 1:
-        return (modules[0](inputs[0]),)
+        return (modules[0](*inputs[0]),)
 
     lock = threading.Lock()
     results = {}
@@ -23,7 +23,7 @@ def parallel_apply(modules, inputs):
             var_input = var_input[0]
         try:
             with torch.cuda.device_of(var_input):
-                output = module(input)
+                output = module(*input)
             with lock:
                 results[input] = output
         except Exception as e:
@@ -32,7 +32,7 @@ def parallel_apply(modules, inputs):
 
     threads = [threading.Thread(target=_worker,
                                 args=(module, input, results, lock))
-                for module, input in zip(modules, inputs)]
+               for module, input in zip(modules, inputs)]
 
     for thread in threads:
         thread.start()
@@ -45,4 +45,3 @@ def parallel_apply(modules, inputs):
             raise output
         outputs.append(output)
     return outputs
-
