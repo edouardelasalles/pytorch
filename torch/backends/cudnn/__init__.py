@@ -179,17 +179,19 @@ class TensorDescriptorArray(object):
     def __getitem__(self, key):
         return ctypes.c_void_p(self.ptrs[key])
 
-    def set(self, tensor):
-        self._type = tensor.type()
-        self._size = tensor.size()
-        self._stride = tensor.stride()
+    def set_all(self, tensor):
+        _type = _typemap[tensor.type()]
+        _ndim = tensor.dim()
+        _size = int_array(tensor.size())
+        _stride = int_array(tensor.stride())
         for ptr in self.ptrs:
             check_error(lib.cudnnSetTensorNdDescriptor(
-                ctypes.c_void_p(ptr), _typemap[tensor.type()], tensor.dim(),
-                int_array(tensor.size()), int_array(tensor.stride())))
+                ctypes.c_void_p(ptr), _type, _ndim, _size, _stride))
 
-    def as_tuple(self):
-        return (self._type, tuple(self._size), tuple(self._stride))
+    def set_raw(self, i, _type, _ndim, _size, _stride):
+        ptr = self.ptrs[i]
+        check_error(lib.cudnnSetTensorNdDescriptor(
+            ctypes.c_void_p(ptr), _type, _ndim, _size, _stride))
 
 
 class ConvolutionDescriptor(object):
@@ -241,23 +243,41 @@ class DropoutDescriptor(object):
     def __init__(self, handle, dropout, seed):
         ptr = ctypes.c_void_p()
         check_error(lib.cudnnCreateDropoutDescriptor(ctypes.byref(ptr)))
+
         self._as_parameter_ = ptr
+        self.state = None
+        self.dropout = dropout
+        self.handle = handle
 
-        dropout_states_size = ctypes.c_long()
-        check_error(lib.cudnnDropoutGetStatesSize(
-            handle,
-            ctypes.byref(dropout_states_size)))
+        self._set(dropout, seed)
 
-        self.state = torch.cuda.ByteTensor(dropout_states_size.value)
+    def set_dropout(self, dropout, seed):
+        if dropout != self.dropout:
+            self._set(dropout, seed)
+
+    def _set(self, dropout, seed):
+        if self.state is None and dropout > 0:
+            dropout_states_size = ctypes.c_long()
+            check_error(lib.cudnnDropoutGetStatesSize(
+                self.handle,
+                ctypes.byref(dropout_states_size)))
+            self.state = torch.cuda.ByteTensor(dropout_states_size.value)
+            state_ptr = self.state.data_ptr()
+            state_size = self.state.size(0)
+        else:
+            state_ptr = None
+            state_size = 0
 
         check_error(lib.cudnnSetDropoutDescriptor(
             self,
-            handle,
+            self.handle,
             ctypes.c_float(dropout),
-            ctypes.c_void_p(self.state.data_ptr()),
-            ctypes.c_size_t(self.state.size(0)),
+            ctypes.c_void_p(state_ptr),
+            ctypes.c_size_t(state_size),
             ctypes.c_ulonglong(seed),
         ))
+
+        self.dropout = dropout
 
     def __del__(self):
         check_error(lib.cudnnDestroyDropoutDescriptor(self))
@@ -368,16 +388,29 @@ def int_array(itr):
 
 
 def descriptor(tensor, N=None):
+    padded_size = tensor.size() + ((1,) * (5 - tensor.dim()))
+    tensor = tensor.view(padded_size)
     if N is not None:
         descriptor = TensorDescriptorArray(N)
+        descriptor.set_all(tensor)
     else:
         descriptor = TensorDescriptor()
-    if tensor.dim() == 2:
-        tensor = tensor.view(tensor.size(0), tensor.size(1), 1, 1)
-    elif tensor.dim() == 3:
-        tensor = tensor.view(tensor.size(0), tensor.size(1), tensor.size(2), 1)
-    descriptor.set(tensor)
+        descriptor.set(tensor)
     return descriptor
+
+
+def descriptor_sequence(tensor, batch_sizes):
+    descriptors = TensorDescriptorArray(len(batch_sizes))
+    _type = _typemap[tensor.type()]
+    _ndim = 5
+    dim_pad = (1,) * (5 - tensor.dim())
+    _size = int_array(tensor.size() + dim_pad)
+    _stride = int_array(tensor.stride() + dim_pad)
+    for i, batch_size in enumerate(batch_sizes):
+        _size[0] = batch_size
+        descriptors.set_raw(i, _type, _ndim, _size, _stride)
+    return descriptors
+
 
 _autotuner_forward = {}
 _autotuner_backward_data = {}

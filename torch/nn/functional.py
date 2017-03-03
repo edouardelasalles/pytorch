@@ -4,6 +4,7 @@ import torch
 from . import _functions
 from .modules import utils
 from torch.nn._functions.conv import ConvNd
+from ._functions.padding import ConstantPad2d
 from .modules.utils import _single, _pair, _triple
 # Convolutions
 
@@ -79,7 +80,7 @@ def conv3d(input, weight, bias=None, stride=1, padding=0, dilation=1,
     Examples:
         >>> filters = autograd.Variable(torch.randn(33, 16, 3, 3, 3))
         >>> inputs = autograd.Variable(torch.randn(20, 16, 50, 10, 20))
-        >>> F.conv3d(inputs)
+        >>> F.conv3d(inputs, filters)
     """
     f = ConvNd(_triple(stride), _triple(padding), _triple(dilation), False,
                _triple(0), groups)
@@ -441,8 +442,8 @@ def cross_entropy(input, target, weight=None, size_average=True):
     Args:
         input: Variable :math:`(N, C)` where `C = number of classes`
         target: Variable :math:`(N)` where each value is `0 <= targets[i] <= C-1`
-        weight (Variable, optional): a manual rescaling weight given to each
-                class. If given, has to be a Variable of size "nclasses"
+        weight (Tensor, optional): a manual rescaling weight given to each
+                class. If given, has to be a Tensor of size "nclasses"
         size_average (bool, optional): By default, the losses are averaged
                 over observations for each minibatch. However, if the field
                 sizeAverage is set to False, the losses are instead summed
@@ -531,3 +532,36 @@ def upsample_bilinear(input, size=None, scale_factor=None):
         scale_factor (int): multiplier for spatial size. Has to be an integer.
     """
     return _functions.thnn.UpsamplingBilinear2d(size, scale_factor)(input)
+
+
+def pad(input, pad, mode='constant', value=0):
+    """Pads tensor.
+
+    Currently only 2D and 3D padding supported.
+    In case of 4D input tensor pad should be in form (pad_l, pad_r, pad_t, pad_b )
+    In case of 5D pad should be (pleft, pright, ptop, pbottom, pfront, pback)
+
+    Args
+        input (Variable): 4D or 5D tensor
+        pad (tuple): 4-elem or 6-elem tuple
+        mode: 'constant', 'reflect' or 'replicate'
+        value: fill value for 'constant' padding
+    """
+    if input.dim() == 4:
+        assert len(pad) == 4, '4D tensors expect 4 values for padding'
+        if mode == 'constant':
+            return ConstantPad2d(pad, value)(input)
+        elif mode == 'reflect':
+            return _functions.thnn.ReflectionPad2d(*pad)(input)
+        elif mode == 'replicate':
+            return _functions.thnn.ReplicationPad2d(*pad)(input)
+    elif input.dim() == 5:
+        assert len(pad) == 6, '5D tensors expect 6 values for padding'
+        if mode == 'constant':
+            raise NotImplementedError
+        elif mode == 'reflect':
+            raise NotImplementedError
+        elif mode == 'replicate':
+            return _functions.thnn.ReplicationPad3d(*pad)(input)
+    else:
+        raise NotImplementedError("Only 4D and 5D padding is supported for now")
